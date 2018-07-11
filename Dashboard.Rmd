@@ -1,0 +1,194 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(readxl)
+library(sqldf)
+library(proto)
+library(gsubfn)
+library(RSQLite)
+library(moments)
+library(ISLR)
+library(corrplot)
+library(readxl)
+library(dplyr)
+library(caret)
+library(forecast)
+library(tseries)
+library(lattice)
+library(ggplot2)
+library(lubridate)
+require(ggplot2)
+library(readxl)
+
+
+n <- data_for_practice
+head(n)
+View(data_for_practice)
+DashboardR <- read_excel("DashboardR.xlsx")
+View(DashboardR)
+unique(DashboardR$MODALITY_ID)
+class(DashboardR$CHANNEL_CODE)
+x <- DashboardR
+x$CHANNEL_CODE[x$CHANNEL_CODE == "ePF"] <- 1
+x$CHANNEL_CODE[x$CHANNEL_CODE == "PS"] <- 2
+x$CHANNEL_CODE <- as.numeric(x$CHANNEL_CODE)
+class(x$CHANNEL_CODE)
+summary(x)
+x$CHANNEL_CODE <- as.numeric(as.character(x$CHANNEL_CODE))
+View(x)
+
+
+unique(DashboardR$REQUESTOR_ID)
+colnames(DashboardR)
+
+install.packages("shiny")
+install.packages("dplyr")
+install.packages("devtools")
+
+library("devtools")
+install_github("ropensci/plotly")
+getwd()
+sqldf("select count(distinct(modality_id)) from DashboardR")
+unique(DashboardR$PRODUCT_CATEGORY_ID)
+skewness(DashboardR$MARGIN)
+hist(DashboardR$MARGIN, n=10)
+
+summary(x)
+anova(DashboardR$MARGIN)
+levels(DashboardR$MODALITY_ID)
+pairs(DashboardR)
+pairs(x,8:11)
+corrplot(pairs(x[,2:11]))
+corrplot(cor(DashboardR[,6:11]), method = "color")
+
+# channel code$epf = 1 and ps = 2
+DashboardR$CHANNEL_CODE[DashboardR$CHANNEL_CODE=="epf"] <- 1
+DashboardR$CHANNEL_CODE[DashboardR$CHANNEL_CODE=="ps" ] <- 2
+DashboardR$CHANNEL_CODE <- as.numeric(DashboardR$CHANNEL_CODE)
+colMeans(is.na(DashboardR$CHANNEL_CODE))
+#DashboardR1 <- subset(DashboardR,DashboardR$ORDERS==1)
+#View(DashboardR1)
+
+```
+
+
+```{r}
+# time series on a new data set. 
+head(Dummy_Data)
+#View(Dummy_Data)
+#summary(Dummy_Data)
+#unique(Dummy_Data$Transaction_date)
+#colMeans(is.na(Dummy_Data))
+x <- Dummy_Data
+x$Transaction_date <- as.Date(x$Transaction_date, format = "%yyyy%mm%dd")
+head(x)
+
+class(x)
+xMargin <- x%>% group_by(month= floor_date(x$Transaction_date, "month")) %>% summarise(Monthly_MARGIN = sum(Margin))
+xMargin
+plot(xMargin$month,xMargin$Monthly_MARGIN, type = "l",
+         xlab = "Date", ylab = "Trend index" )
+
+
+starty <- 2017
+startm<- 1
+xMargin_ts <- ts(xMargin$Monthly_MARGIN, start = c(starty,startm), end =  c(2018,1), freq = 12)
+xMargin_ts
+plot(xMargin_ts, xlab = "TIme", ylab ="Margin") 
+p <- ggplot(xMargin, aes(x=month, y=Monthly_MARGIN)) +
+            geom_point(shape=1) +    # Use hollow circles
+            geom_smooth(method=lm)   # Add linear regression line
+  
+ggplotly(p)
+
+#tMargin <- n%>% group_by(month= floor_date(n$Transaction_date, "month")) %>% summarise(Monthly_MARGIN = sum(MARGIN))
+
+#ts <- ts(n$MARGIN, start = c(2018,1), end = c(2018,6), frequency = 12)
+#ts
+#plot(ts, xlab = "time", ylab = "Margin")
+```
+```{r}
+xMargin <- x%>% group_by(year= floor_date(x$Transaction_date, "year")) %>% summarise(Monthly_MARGIN = sum(Margin))
+xMargin
+```
+
+```{r}
+#Time series 
+t <- x
+t <- as.data.frame(t)
+class(t)
+class(t$TRANSACTION_DATE)
+head(t)
+t$TRANSACTION_DATE <- as.Date(t$TRANSACTION_DATE, format = "%yyyy%mm%dd")
+t$TRANSACTION_DATE <- format(t$TRANSACTION_DATE, format = "%d/%m/%y")
+t$TRANSACTION_DATE <- as.factor(as.character(t$TRANSACTION_DATE))
+View(t)
+summary(t)
+tMargin <- ts(t$MARGIN, start= c(2018,1), end = c(2018,5), freq = 12)
+tMargin
+plot(tMargin.ts, xlab = "Time", ylab = "Margin", ylim= c(-11000, 11000))
+tst <- ts(temPlot$Monthly_MARGIN, start = c(2018,1), end = c(2018,5), frequency = 12)
+tst
+plot(tst, xlab = "Month", ylab = "Margin", ylim= c(0, 300000))
+
+# start = c(2018,1), end = c(2018,5),
+```
+
+
+
+```{r}
+dm <- read.table(text = Lines, header = TRUE)
+dm$Date <- as.Date(dm$Date, "%m/%d/%Y")
+plot(MARGIN ~ TRANSACTION_DATE, t, xaxt = "n", type = "l")
+axis(1, t$TRANSACTION_DATE, format(t$TRANSACTION_DATE, "%b %d"), cex.axis = .7)
+```
+
+### Chart C
+
+```{r}
+View(t)
+class(t)
+t$TRANSACTION_DATE <- as.Date( t$TRANSACTION_DATE, '%y/%m/%d')
+#View(t$TRANSACTION_DATE)t1
+t1 <- t
+tem <- t1 %>% group_by(month= floor_date(t1$TRANSACTION_DATE, "month"))
+View(tem)
+t1$month <- tem$month
+colnames(t1)
+tem1 <- tem %>% group_by(month= floor_date(tem$TRANSACTION_DATE, "month")) %>% summarise(Monthly_MARGIN = sum(MARGIN))
+
+t1 %>% group_by(month= floor_date(TRANSACTION_DATE, "month")) %>% summarise(Monthly_MARGIN = sum(MARGIN))
+temPlot <- t1 %>% group_by(month= floor_date(TRANSACTION_DATE, "month")) %>% summarise(Monthly_MARGIN = sum(MARGIN))
+
+colnames(t1)
+
+ggplot( data = t1, aes( TRANSACTION_DATE, MARGIN )) + geom_smooth(method = "lm") + geom_line()
+View(temPlot)
+ggplot( data = t, aes( month, Monthly_MARGIN )) + geom_smooth(method = "lm") + geom_line() + geom_point()
+
+temPlot %>% filter(temPlot$month == "2018-01-01") %>% ggplot( data = temPlot, aes( month, Monthly_MARGIN )) + geom_smooth(method = "lm") + geom_line() + geom_point()
+
+
+
+
+
+
+
+
+```{r}
+numMonth <- function(x) {
+    months <- list(jan=1,feb=2,mar=3,apr=4,may=5,jun=6,jul=7,aug=8,sep=9,oct=10,nov=11,dec=12)
+    x <- tolower(x)
+    sapply(x,function(x) months[[x]])
+}
+
+numMonth(c('JAN','DEC'))
+```
+

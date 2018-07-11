@@ -1,0 +1,351 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(shiny)
+library(ggplot2)
+library(rsconnect)
+library(shinythemes)
+library(dplyr)
+library(readr)
+library(lubridate)
+library(base)
+library(base64enc)
+library(shinydashboard)
+library(tidyverse)
+library(plotly)
+library(RColorBrewer)
+
+
+
+t <- Dummy_Data
+t$Transaction_date <- as.Date(t$Transaction_date)
+
+
+ ui <-(
+   dashboardPage(
+     dashboardHeader(
+       title = "PartsSource"
+       ),
+     dashboardSidebar(
+      sidebarMenu(
+        menuItem("Margin", tabName = "TSmargin"),
+        menuItem("Margin vs ModalityID", tabName = "mamo"),
+        menuItem("Margin Vs Channel Code", tabName = "mc")
+      )
+     ),
+     
+     dashboardBody(
+        tabItems(
+          tabItem(tabName = "TSmargin",
+                  fluidPage(
+                theme = shinytheme("cyborg"),
+                h3(strong("Margin from Jan 2016 to June 2018")),
+                
+                 dateRangeInput("date", strong("Date range"),
+                   start = "2016-01-01", end ="2018-06-30",
+                     min = "2016-01-01", max = "2018-06-30"),
+                
+                plotOutput('p1')
+                  
+          )
+        ),
+        tabItem(tabName = "mamo",
+                fluidPage(
+                h3(strong("Margin vs Modality")),
+                
+                dateRangeInput("date", strong("Date range"),
+                   start = "2016-01-01", end ="2018-06-30",
+                     min = "2016-01-01", max = "2018-06-30"),
+                
+                plotOutput('p2')
+                )),
+        tabItem(tabName = "mc",
+                fluidPage(
+                h3(strong("Margin vs Channel Code")),
+                dateRangeInput("date", strong("Date range"),
+                   start = "2016-01-01", end ="2018-06-30",
+                     min = "2016-01-01", max = "2018-06-30"),
+                plotOutput('p3')
+                ))
+     )
+ )
+)
+)
+# Define UI
+                
+
+# Server logic
+server <- function(input, output, session) {
+ 
+  output$p1 <- renderPlot({
+    t1 <- t %>% group_by(month= floor_date(t$TRANSACTION_DATE, "month")) %>% summarise(Monthly_MARGIN = sum(MARGIN))
+    t1 <- t %>% filter(Transaction_date > as.POSIXct(input$date[1]) & Transaction_date < as.POSIXct(input$date[2])) %>% summarise(Monthly_MARGIN = sum(Margin))
+    plot(t1$month,t1$Monthly_MARGIN, type = "l",
+         xlab = "Date", ylab = "Trend index" )
+  
+        
+
+  })
+  output$p2 <- renderPlot({
+    t2 <- t %>% filter(Transaction_date > as.POSIXct(input$date[1]) & Transaction_date < as.POSIXct(input$date[2])) %>% group_by(MODALITY_ID)%>%summarise(Margin_Modality=sum(Margin))%>% mutate(Margin_Modality) %>% arrange(desc(Margin_Modality))
+                       
+ggplot(t2, aes(x=MODALITY_ID, y=Margin_Modality)) +
+            geom_point(shape=1)+ geom_line()   # Use hollow circles
+            
+  })
+  output$p3 <- renderPlot({
+    t3 <- t %>% 
+      filter(Transaction_date > as.POSIXct(input$date[1]) & Transaction_date < as.POSIXct(input$date[2]))%>% group_by(CHANNEL_CODE)%>% summarise(Margin_Modality=sum(Margin))
+   ggplot(data = t3, aes(x = CHANNEL_CODE, y = Margin_Modality)) + geom_point(shape=1)+  geom_bar(stat = "identity") 
+    
+  })
+}
+
+# Complete app with UI and server components
+shinyApp(ui, server)
+#p1 <- xMargin_ts
+#p1 <- data.frame(p1)
+#p1
+```
+```{r}
+
+
+#load data
+t <- Dummy_Data
+t$MODALITY_ID <- as.character(t$MODALITY_ID)
+t1 <- t %>% group_by(CHANNEL_CODE, Month= floor_date(t$Transaction_date, "month"))  %>%  summarise(Monthly_MARGIN = sum(Margin))
+
+#View(t1)
+ui <- fluidPage( theme = shinytheme("cerulean"),
+      titlePanel(h1(strong("PartsSource"))),
+      sidebarLayout(
+        sidebarPanel(
+           dateRangeInput("date", h4("Date Range"),
+                   start = "2016-01-01", end ="2018-06-30",
+                     min = "2016-01-01", max = "2018-06-30")
+           
+           #checkboxInput(inputId = "margin", label = strong("Margin"), value = TRUE),
+           #checkboxInput(inputId = "MM", label = strong("Margin vs Modality"), value = FALSE),
+           #checkboxInput(inputId = "MC", label = strong("Margin vs Channel Code"), value = FALSE)
+           
+        )
+      , 
+    mainPanel(
+      
+                          
+        plotlyOutput("b"),
+        plotlyOutput("b1")
+        #plotOutput("b2")
+      ))
+)
+
+server <- function(input, output) {
+  #subset data
+  #selected_trends <- reactive({ 
+   # req(input$date)
+  #  validate(need(!is.na(input$date[1]) & !is.na(input$date[2]), "Error: Please provide both a start and an end date."))
+   # validate(need(input$date[1] < input$date[2], "Error: Start date should be earlier than end date."))
+    
+    
+        
+#  })
+  # Create scatterplot object the plotOutput function is expecting
+  output$b <-  renderPlotly({
+    
+    t2 <- t1 %>% filter(Month >= as.Date(input$date[1]) & Month <= as.Date(input$date[2]))
+ #ggplot(t2, aes(x=Month, y=Monthly_MARGIN), color = CHANNEL_CODE ) + geom_point(shape=1)+ geom_line()
+ 
+  p <- ggplot(t2, aes(x = Month, y = Monthly_MARGIN, fill = CHANNEL_CODE)) + geom_area() +
+labs(title = "Margin", x = "Time", y = "Margin") + scale_fill_brewer(palette="Set1")
+ggplotly(p)
+  #table(t2) 
+    
+  })
+  output$b1 <- renderPlotly(
+     {
+#  t3 <- t %>% filter(Transaction_date > as.POSIXct(input$date[1]) & Transaction_date < as.POSIXct(input$date[2])) %>% group_by(MODALITY_ID)%>%summarise(Margin_Modality=sum(Margin))%>% mutate(Margin_Modality) %>% arrange(desc(Margin_Modality))
+  
+                       
+#p1 <- ggplot(t3, aes(x= reorder(MODALITY_ID, -Margin_Modality), y=Margin_Modality)) + geom_bar(stat = "identity", aes(fill = Margin_Modality))+ labs(x = "Modality ID", y = 'Margin')   # Use hollow circles
+#ggplotly(p1)
+ 
+t3 <- t %>% filter(Transaction_date > as.POSIXct(input$date[1]) & Transaction_date < as.POSIXct(input$date[2]))%>% group_by(MODALITY_ID, CHANNEL_CODE) %>% summarise(Margin = sum(Margin))
+ 
+                       
+p1 <- ggplot(t3, aes(x= reorder(MODALITY_ID, -Margin), y= Margin)) + geom_bar(stat = "identity", aes(fill = CHANNEL_CODE))+ labs(title = "Margin Vs Modality", x = "Modality ID", y = 'Margin') + scale_fill_brewer(palette="Set1")  # Use hollow circles
+
+ggplotly(p1)
+    }
+  )
+
+  
+  #output$b2 <- renderPlot ({
+#    t4 <- t %>% filter(Transaction_date > as.POSIXct(input$date[1]) & Transaction_date < as.POSIXct(input$date[2]))%>% group_by(CHANNEL_CODE)%>% summarise(Margin_Modality=sum(Margin))
+# ggplot(data = t4, aes(x = CHANNEL_CODE, y = Margin_Modality)) + geom_point(shape=1)+  geom_bar(stat = "identity")
+ 
+ #t4 <- t %>% filter(Transaction_date > as.POSIXct(input$date[1]) & Transaction_date < as.POSIXct(input$date[2]))
+ #ggplot(data = t4, aes(x = CHANNEL_CODE, y = Margin)) + geom_point(shape=1)+  geom_bar(stat = "identity", aes(fill = year(t$Transaction_date)))
+
+  
+  #}
+#)
+}
+shinyApp(ui, server)
+
+
+
+```
+
+```{r}
+
+ t3 <- t %>% group_by(MODALITY_ID)%>%summarise(Margin_Modality=sum(Margin))%>% mutate(Margin_Modality) %>% arrange(desc(Margin_Modality))
+                       
+p <- ggplot(t3, aes(x= reorder(MODALITY_ID, -Margin_Modality), y=Margin_Modality)) + geom_bar(stat = "identity", aes(fill = Margin_Modality))+ labs(x = "Modality ID", y = 'Margin')   # Use hollow circles
+
+ggplotly(p)
+
+t1 <- t %>% group_by(Month= floor_date(t$Transaction_date, "month")) %>% summarise(Monthly_MARGIN = sum(Margin))
+t1 <- t %>% group_by((Month= floor_date(t$Transaction_date, "month")), CHANNEL_CODE) %>% summarise(Monthly_MARGIN = sum(Margin))
+t1
+ggplot(t1, aes(x=Month, y=Monthly_MARGIN, group=CHANNEL_CODE)) + geom_line()
+  
+  t4 <- t %>% group_by(CHANNEL_CODE)%>% summarise(Margin_Modality=sum(Margin))
+  t4
+   ggplot(data = t4, aes(x =CHANNEL_CODE, y = Margin_Modality)) + geom_point(shape=1)+  geom_bar(stat = "identity") 
+   
+    ggplot(data = t3, aes(x = CHANNEL_CODE, y = Margin_Modality)) + geom_point(shape=1)+  geom_bar(stat = "identity") 
+    
+#GOOD    
+p1 <- ggplot(t, aes(x= reorder(MODALITY_ID, -Margin), y=Margin)) + geom_bar(stat = "identity", aes(fill = CHANNEL_CODE))+ labs(x = "Modality ID", y = 'Margin')   # Use hollow circles
+
+ggplotly(p1)
+colnames(t)
+
+
+ t4 <- t %>% filter(Transaction_date > as.POSIXct(input$date[1]) & Transaction_date < as.POSIXct(input$date[2]))
+p <- ggplot(data = t4, aes(x = CHANNEL_CODE, y = Margin)) + geom_point(shape=1)+  geom_bar(stat = "identity", aes(fill = year(t$Transaction_date)))
+
+ t2 <- t1 %>% filter(Month >= as.Date(input$date[1]) & Month <= as.Date(input$date[2]))
+ t1
+ p <-  ggplot(t, aes(x=Month, y=Margin)) + geom_point(shape=1)+ geom_line()
+  
+  
+t4<- t%>% group_by(Month = month(Transaction_date))%>% summarise(Margin = sum(Margin))
+t4
+t1 <- t %>% group_by(CHANNEL_CODE, Month= floor_date(t$Transaction_date, "month"))  %>%  summarise(Monthly_MARGIN = sum(Margin))
+p <-ggplot(t1, aes(x=Month, y=Monthly_MARGIN), group = CHANNEL_CODE, color = CHANNEL_CODE) + geom_bar(stat = "identity") + geom_point()
+
+
+#good
+p <- ggplot(t1, aes(x = Month, y = Monthly_MARGIN, fill = CHANNEL_CODE)) + geom_bar(stat = "identity")+ geom_smooth() +
+labs(title = "Margin", x = "Time", y = "Margin")
+ggplotly(p)
+
+
+p <- ggplot(t1, aes(x = Month, y = Monthly_MARGIN, fill = CHANNEL_CODE)) + geom_area() +
+labs(title = "Margin", x = "Time", y = "Margin")
+ggplotly(p)
+
+t1
+
+
+t3 <- t %>% filter(Transaction_date > as.POSIXct(input$date[1]) & Transaction_date < as.POSIXct(input$date[2])) %>% arrange(desc(Margin))
+ 
+
+```
+```{r}
+library(shiny)
+library(ggplot2)
+library(gridExtra)
+
+u <- shinyUI(fluidPage(
+  titlePanel("title panel"),
+  sidebarLayout(position = "left",
+      sidebarPanel("sidebar panel",
+           checkboxInput("donum1", "Make #1 plot", value = T),
+           checkboxInput("donum2", "Make #2 plot", value = F),
+           checkboxInput("donum3", "Make #3 plot", value = F),
+           sliderInput("wt1","Weight 1",min=1,max=10,value=1),
+           sliderInput("wt2","Weight 2",min=1,max=10,value=1),
+           sliderInput("wt3","Weight 3",min=1,max=10,value=1)
+      ),
+      mainPanel("main panel",
+          column(6,plotOutput(outputId="plotgraph", width="500px",height="400px"))
+))))
+
+s <- shinyServer(function(input, output) 
+{
+  set.seed(123)
+  pt1 <- reactive({
+    if (!input$donum1) return(NULL)
+    qplot(rnorm(500),fill=I("red"),binwidth=0.2,main="plotgraph1")
+    })
+  pt2 <- reactive({
+    if (!input$donum2) return(NULL)
+    qplot(rnorm(500),fill=I("blue"),binwidth=0.2,main="plotgraph2")
+  })
+  pt3 <- reactive({
+    if (!input$donum3) return(NULL)
+    qplot(rnorm(500),fill=I("green"),binwidth=0.2,main="plotgraph3")
+  })
+  output$plotgraph = renderPlot({
+    ptlist <- list(pt1(),pt2(),pt3())
+    wtlist <- c(input$wt1,input$wt2,input$wt3)
+    # remove the null plots from ptlist and wtlist
+    to_delete <- !sapply(ptlist,is.null)
+    ptlist <- ptlist[to_delete] 
+    wtlist <- wtlist[to_delete]
+    if (length(ptlist)==0) return(NULL)
+
+    grid.arrange(grobs=ptlist,widths=wtlist,ncol=length(ptlist))
+  })
+})
+shinyApp(u,s)
+```
+```{r}
+u <-shinyUI(fluidPage(
+  titlePanel("title panel"),
+
+  sidebarLayout(position = "left",
+                sidebarPanel("sidebar panel",
+                             checkboxInput("do2", "Make 2 plots", value = T)
+                ),
+                mainPanel("main panel",
+                          fluidRow(
+                            splitLayout(cellWidths = c("50%", "50%"), plotOutput("plotgraph1"), plotOutput("plotgraph2"))
+                          )
+                )
+  )
+)
+)
+s <- shinyServer(function(input, output) 
+{
+  set.seed(1234)
+  pt1 <- qplot(rnorm(500),fill=I("red"),binwidth=0.2,title="plotgraph1")
+  pt2 <- reactive({
+    input$do2
+    if (input$do2){
+      return(qplot(rnorm(500),fill=I("blue"),binwidth=0.2,title="plotgraph2"))
+    } else {
+      return(NULL)
+    }
+  })
+  output$plotgraph1 = renderPlot({pt1})
+  output$plotgraph2 = renderPlot({pt2()})
+}
+)
+shinyApp(u,s)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
