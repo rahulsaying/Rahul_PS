@@ -1,0 +1,92 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(e1071)
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(plyr)
+library(dplyr)
+library(caret)
+library(VIM)
+library(NbClust)
+library(stringdist)
+library(openxlsx)
+```
+```{r}
+
+m1 <- Manufacturer_List
+View(m1)
+## cleaning concerned column  
+m1$MANUFACTURER_clean <- gsub('[[:punct:]]', "", m1$MANUFACTURER)
+m1$MANUFACTURER_clean <- gsub('[[:cntrl:]]', "", m1$MANUFACTURER_clean)
+m1$MANUFACTURER_clean <- gsub('[[:space:]]', "", m1$MANUFACTURER_clean)
+m1$MANUFACTURER_clean <- tolower(m1$MANUFACTURER_clean)
+View(supp)
+View(m1)
+## row numbering  ##
+m1$row <- rownames(m1)
+
+###   Exact Match    ###
+
+ExactMatch_m1  <- m1 %>% mutate(m1, match = match(m1$MANUFACTURER_clean, supp$SUPPLIER_clean) )
+ExactMatch_m1 <- ExactMatch_m1 %>% merge(x = ExactMatch_m1  , y = supp, by.x = "match", by.y = "row", all.x = TRUE)
+ExactMatch_m1$SUPPLIER_Exact <- ExactMatch_m1$SUPPLIER
+ExactMatch_m1$SUPPLIER <- NULL
+
+##  Distance 50 Match ###
+matcm50_m1 <- m1 %>% mutate(m1, match = amatch(m1$MANUFACTURER_clean, supp$SUPPLIER_clean, maxDist = 50, matchNA = FALSE) )
+matcm50_m1 <- matcm50_m1 %>% merge(x = matcm50_m1  , y = supp, by.x = "match", by.y = "row", all.x = TRUE)
+matcm50_m1$SUPPLIER_50 <- matcm50_m1$SUPPLIER
+matcm50_m1$SUPPLIER <- NULL
+
+
+
+## All Merge   ##
+all_merge_m1 <- merge(x = ExactMatch_m1[, c("row","SUPPLIER_Exact" )] , y = matcm50_m1 , by.x = "row" , by.y = "row", all.x = TRUE )
+View(all_merge_m1)
+colnames(all_merge_m1)
+m1_matched <- all_merge_m1[,c(4,2,10,7,8,5)]
+View(m1_matched)
+write.xlsx(m1_matched, "Manufacturer_list_allRank.xlsx")
+
+
+colnames(matcm50_m1)
+summary(m1_matched)
+
+##     Rank 1 Vs Rank 2 and 3  ##  
+xRedo <- x
+xRedo$SUPPLIER_clean <- NULL
+xRedo$row <- NULL
+
+xRedo <- filter(xRedo, xRedo$rank == 2 | xRedo$rank == 3)
+View(xRedo)
+Rank_m1 <- merge(x= all_merge_m1[,c("MANUFACTURER", "VENDOR_MATCH","rank", "SUPPLIER_50")], y = xRedo, by.x = "VENDOR_MATCH", by.y = "VENDOR_MATCH", all.x = TRUE )
+colnames(Rank_m1)
+View(Rank_m1)
+
+setnames(Rank_m1, old = c("MANUFACTURER", "SUPPLIER_50","SUPPLIER","VENDOR_MATCH"), new = c( "MANUFACTURER (Names Provided)", "SUPPLIER_50","SUPPLIER (Internal Vendor Names)","VENDOR_MATCH"))
+Rank_m1 <- Rank_m1[, c(2,4,5,1)]
+write.xlsx(Rank_m1, "Manufacturer_list_matched_New.xlsx")
+
+colnames(all_merge_m1)
+all_merge_m1 <- all_merge_m1[, c(4,5,2,8,6)]
+View(all_merge_m1)
+summary(all_merge_m1)
+setnames(Rank_h1, old = c("Supplier", "SUPPLIER_10","SUPPLIER","VENDOR_MATCH"), new = c( "Supplier (Names Provided)", "SUPPLIER_10","SUPPLIER (Internal Vendor Names)","VENDOR_MATCH"))
+
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

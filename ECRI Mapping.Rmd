@@ -1,0 +1,198 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(e1071)
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(plyr)
+library(dplyr)
+library(caret)
+library(VIM)
+library(NbClust)
+library(stringdist)
+library(openxlsx)
+```
+```{r}
+hp <- HPCS_Products
+hpR <- HPCS_Retired_Products
+his <- Company_HistoryFull
+his2 <- Company_HistoryFull
+View(his)
+hisPointer <- his$COMPANY_POINTER
+p <- his[ his$COMPANY_POINTER %in% his$COMPANY_CODE,]
+p1 <- merge(x = his2 , y = his, by.x = "COMPANY_POINTER", by.y = "COMPANY_CODE" , all = FALSE )
+#p1New <- merge(x = his , y = his2, by.x = "COMPANY_CODE", by.y = "COMPANY_POINTER" , all.x = TRUE )
+p1New <- merge(x = his2 , y = his, by.x = "COMPANY_POINTER", by.y = "COMPANY_CODE" , all.x = TRUE )
+colMeans(is.na(p1New))
+colMeans(is.na(his))
+
+View(p1New1)
+summary(p)
+colnames(p1New1)
+p1New <- p1New[,c(1,2,3,4,15,16,5:14)]
+p1New1 <- p1New[,c(1,2,3,15,19)]
+
+write.xlsx(t2, "company_history_joined.xlsx")
+
+t <- cbind(p1New1, p1New1[match(p1New1$COMPANY_POINTER.y, p1New1$COMPANY_POINTER), ])
+t1<- t[,-c(6:8)]
+View(t2)
+colnames(t1)
+
+t2 <- cbind(t1, t1[match(t1$COMPANY_POINTER.y.1, t1$COMPANY_POINTER), ])
+t3 <- cbind(t2, t1[match(t1$COMPANY_POINTER.y.1, t1$COMPANY_POINTER), ])
+View(t2)
+colnames(hpHisHpr) <- c("COMPANY_POINTER", "History", "Present", "Retired" )
+head(t1)
+head(t2)
+colnames(t1)
+colnames(t2)
+dim(t)
+dim(t1)
+t3 <- cbind(t, t[match(t$COMPANY_POINTER.y.1, t$COMPANY_POINTER), ])
+```
+```{r}
+library(data.tree)
+library(treemap)
+library(networkD3)
+library(igraph)
+library(ggplot2)
+colnames(tree)
+tree <- tree[complete.cases(tree),]
+dim(p1)
+tree <- p1[,c(2,1)]
+tree <- his[,1:2]
+dim(tree)
+tree <- cbind(tree, tree[match(tree$COMPANY_POINTER, tree$COMPANY_CODE), ])
+tree <- tree[,c(3,4)]
+View(tree)
+tree < paste("company",
+                        tree$COMPANY_POINTER,
+                        tree$COMPANY_CODE,
+                        sep = "/")
+CODE <- as.Node(tree)
+
+tree$COMPANY_POINTER[is.na(tree$COMPANY_POINTER)] <- "tree_root"
+
+dat$ParentId[is.na(dat$ParentId)] <- "tree_root"
+dat_network <- subset(tree, !is.na(tree$COMPANY_POINTER), c("COMPANY_CODE", "COMPANY_POINTER"))
+datfortree <- FromDataFrameNetwork(dat_network, check = "check")
+
+datafortree <- data.frame(current = tree$COMPANY_POINTER
+                          ,Previous = tree$COMPANY_CODE
+                          )
+datafortree$current <- as.factor(datafortree$current)
+datafortree$Previous <- as.factor(datafortree$Previous)
+
+data_tree <- FromDataFrameNetwork(datafortree, root = datafortree$current)
+plot(datafortree, layout = layout.reingold.tilford(datafortree, root= datafortree$current))
+class(tree)
+tree <- as.data.frame(tree)
+View(datafortree)
+colMeans(is.na(tree))
+net <- graph_from_data_frame(d = tree,
+                             directed = T)
+net <- as.data.frame(net)
+plot(net)
+table(net)
+ggplot(net)
+diagonalNetworkOutput(net)
+diagonalNetwork(net)
+
+```
+```{r}
+dim(t)
+colnames(p1New1)
+r <- p1New1
+View(t)
+r <- r[,c(1,2,4)]
+
+names(r)[3] <- "COMPANY_POINTER.r"
+r1 <- cbind(r, r[match(r$COMPANY_POINTER.r, r$COMPANY_POINTER), 3 ])
+names(r1)[4] <- "COMPANY_POINTER.r1"
+
+r2 <- cbind(r1, r1[match(r1$COMPANY_POINTER.r1, r1$COMPANY_POINTER.r), ])
+names(r2)[8] <- "COMPANY_POINTER.r2"
+r2 <- r2[,-c(5:7)]
+
+r3 <- cbind(r2, r2[match(r2$COMPANY_POINTER.r2, r2$COMPANY_POINTER.r1), ])
+names(r3)[10] <- "COMPANY_POINTER.r3"
+r3 <- r3[,-c(6:9)]
+
+r4 <- cbind(r3, r3[match(r3$COMPANY_POINTER.r3, r3$COMPANY_POINTER.r2), ])
+names(r4)[12] <- "COMPANY_POINTER.r4"
+colnames(r4)
+r4 <- r4[,-c(7:11)]
+View(r4)
+
+r5 <- cbind(r4, r4[match(r4$COMPANY_POINTER.r4, r4$COMPANY_POINTER.r3), ])
+names(r5)[14] <- "COMPANY_POINTER.r5"
+colnames(r5)
+r5 <- r5[,-c(8:13)]
+View(r5)
+
+r6 <- cbind(r5, r5[match(r5$COMPANY_POINTER.r5, r5$COMPANY_POINTER.r4), ])
+names(r6)[16] <- "COMPANY_POINTER.r6"
+colnames(r6)
+r6 <- r6[,-c(9:15)]
+#View(r6)
+
+r7 <- cbind(r6, r6[match(r6$COMPANY_POINTER.r6, r6$COMPANY_POINTER.r5), ])
+names(r7)[18] <- "COMPANY_POINTER.r7"
+colnames(r7)
+r7 <- r7[,-c(10:17)]
+#View(r7)
+
+r8 <- cbind(r7, r7[match(r7$COMPANY_POINTER.r7, r7$COMPANY_POINTER.r6), ])
+names(r8)[20] <- "COMPANY_POINTER.r8"
+colnames(r8)
+r8 <- r8[,-c(11:19)]
+#View(r8)
+
+r9 <- cbind(r8, r8[match(r8$COMPANY_POINTER.r8, r8$COMPANY_POINTER.r7), ])
+names(r9)[22] <- "COMPANY_POINTER.r9"
+colnames(r9)
+r9 <- r9[,-c(12:21)]
+View(r9)
+
+#write.xlsx(r9, "company_history_joined_1.xlsx")
+colnames(compName)
+compName <- his[,c(1,3,2,6)]
+names(compName)[2] <- "Code_Name"
+names(compName)[4] <- "Pointer_Name"
+View(compName)
+
+# pasting names for r,r1 till r9 and company code, did it one by one
+r9Names <- r9 %>% mutate(r9, Company_Code_Name = compName$Code_Name[match(r9$COMPANY_CODE, compName$COMPANY_CODE)])
+r9Names1 <- r9Names1 %>% mutate(r9Names1, Company_Pointer_Name.r9 = compName$Pointer_Name[match(r9Names1$COMPANY_POINTER.r9, compName$COMPANY_POINTER)])
+
+colnames(r9Names1)
+r9Names1 <- r9Names1[, c(1,14,2,13,3,15,4,16,5,17,6,18,7,19,8,20,9,21,10,22,11,23,12,24)]
+View(r9Names1)
+write.xlsx(r9Names1, "company_history_joined_Names.xlsx")
+
+
+
+
+```
+```{r}
+tree <- company_history_joined_Names2
+hp <- HPCS_Products
+View(hp)
+ret <- HPCS_Retired_Products
+View(ret)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.

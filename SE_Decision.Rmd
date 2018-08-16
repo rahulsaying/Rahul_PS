@@ -1,0 +1,151 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(e1071)
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(plyr)
+library(dplyr)
+library(caret)
+library(VIM)
+library(NbClust)
+library(stringdist)
+library(openxlsx)
+```
+```{r}
+se <- SE_Decision_List_v_Colan_Intro_July_2018
+
+se$Labels_clean <- gsub('[[:punct:]]', "", se$`Row Labels`)
+se$Labels_clean <- gsub('[[:cntrl:]]', "", se$Labels_clean)
+se$Labels_clean <- gsub('[[:space:]]', "", se$Labels_clean)
+se$Labels_clean <- tolower(se$Labels_clean)
+
+## row numbering  ##
+se$row <- rownames(se)
+se <- as.data.frame(se)
+
+##  Distance 50 Match ###
+match50_se <- se %>% mutate(se, match = amatch(se$Labels_clean, supp$SUPPLIER_clean, maxDist = 50, matchNA = FALSE) )
+match50_se <- match50_se %>% merge(x = match50_se  , y = supp, by.x = "match", by.y = "row", all.x = TRUE)
+colnames(match50_se)
+summary(match50_se)
+se_matched <- match50_se[,c(1,7,16,17,18)]
+View(se_matched)
+write.xlsx(se_matched, "SEsheet1_vs_SupplierMatch.xlsx")
+```
+```{r}
+c <- Customers
+se <- SE_Decision_List_v_Colan_Intro_July_2018
+
+se$Labels_clean <- gsub('[[:punct:]]', "", se$`Row Labels`)
+se$Labels_clean <- gsub('[[:cntrl:]]', "", se$Labels_clean)
+se$Labels_clean <- gsub('[[:space:]]', "", se$Labels_clean)
+se$Labels_clean <- tolower(se$Labels_clean)
+
+c$COMPANY_NAME_clean <- gsub('[[:punct:]]', "", c$COMPANY_NAME)
+c$COMPANY_NAME_clean <- gsub('[[:cntrl:]]', "", c$COMPANY_NAME_clean)
+c$COMPANY_NAME_clean <- gsub('[[:space:]]', "", c$COMPANY_NAME_clean)
+c$COMPANY_NAME_clean <- tolower(c$COMPANY_NAME_clean)
+
+## row numbering  ##
+c$row <- rownames(c)
+se <- as.data.frame(se)
+
+##  Distance 50 Match ###
+match50_se1 <- se %>% mutate(se, match = amatch(se$Labels_clean, c$COMPANY_NAME_clean, maxDist = 50, matchNA = FALSE) )
+match50_se1 <- match50_se1 %>% merge(x = match50_se1  , y = c, by.x = "match", by.y = "row", all.x = TRUE)
+colnames(match50_se1)
+View(match50_se1)
+summary(match50_se)
+se_matched1 <- match50_se1[,c(1,7,16,17,18)]
+View(se_matched1)
+write.xlsx(se_matched1, "SEsheet1_vs_Customers.xlsx")
+
+
+
+```
+```{r}
+####  SE Decision other sheet match   ####
+se1 <- SE_Decision_List_v_Colan_sheet2
+
+se1$Labels_clean <- gsub('[[:punct:]]', "", se1$`Row Labels`)
+se1$Labels_clean <- gsub('[[:cntrl:]]', "", se1$Labels_clean)
+se1$Labels_clean <- gsub('[[:space:]]', "", se1$Labels_clean)
+se1$Labels_clean <- tolower(se1$Labels_clean)
+
+se1$row <- rownames(se1)
+se <- as.data.frame(se)
+
+##  Distance 50 Match ###
+match50_se1 <- se1 %>% mutate(se1, match = amatch(se1$Labels_clean, supp$SUPPLIER_clean, maxDist = 50, matchNA = FALSE) )
+match50_se1 <- match50_se1 %>% merge(x = match50_se1  , y = supp, by.x = "match", by.y = "row", all.x = TRUE)
+colnames(match50_se1)
+summary(match50_se1)
+View(match50_se1)
+se1_matched <- match50_se1[,c(2,3,4,5,6,21,22,7:18)]
+View(se1_matched)
+write.xlsx(se1_matched, "SEsheet2_vs_SupplierMatch.xlsx")
+
+## other sheet-  Distance 50 Match with customer list ###
+match50_se11 <- se1 %>% mutate(se1, match = amatch(se1$Labels_clean, c$COMPANY_NAME_clean, maxDist = 50, matchNA = FALSE) )
+match50_se11 <- match50_se11 %>% merge(x = match50_se11 , y = c, by.x = "match", by.y = "row", all.x = TRUE)
+colnames(match50_se11)
+View(match50_se1)
+summary(match50_se11)
+se1_matched1 <- match50_se11[,c(2:6,21,22,23,7:18)]
+View(se1_matched1)
+write.xlsx(se1_matched1, "SEsheet2_vs_Customers.xlsx")
+
+
+```
+```{r}
+i=1
+while(i<7)
+{
+  if(i%%2==0)
+    print(paste(i, "is an Even number"))
+  else if(i%%2>0)
+    print(paste(i, "is an Odd number"))
+  i=i+1
+}
+
+i = 1
+while (i<15) {
+  if(i%%2==0)
+    print(paste(i,"is even"))
+  else if (i%%2 >0)
+    print(paste(i,"is odd"))
+  i = i+1
+}
+n <- 10
+n <- function(x) {
+  i = x
+  if (i<x) {
+  if(i%%2==0)
+    print(paste(i,"is even"))
+  else if (i%%2 >0)
+    print(paste(i,"is odd"))
+  i = i+1
+  }
+  else
+    print( "is less than i")
+    
+  
+}
+n <-10
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
