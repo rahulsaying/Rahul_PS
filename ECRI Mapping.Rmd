@@ -186,9 +186,189 @@ write.xlsx(r9Names1, "company_history_joined_Names.xlsx")
 ```{r}
 tree <- company_history_joined_Names2
 hp <- HPCS_Products
-View(hp)
+View(tree)
 ret <- HPCS_Retired_Products
 View(ret)
+colnames(tree)
+colnames(hp)
+
+z <- rbind(tree, hp)
+nrow(z)
+nrow(z3)
+dim(z)
+dim(z1)
+View(z1)
+z1 <- z[!duplicated(z[1:2]), ]
+z2 <- duplicated(z1[,1])
+View(z2)
+summary(z2)
+
+# z3 is the final match of company history and hpcs product
+z3 <- z1[!duplicated(z1[,1]),]
+View(z3)
+summary(z3)
+
+colnames(hp)
+colnames(ret)
+ret <- ret[,4:5]
+View(ret)
+
+z4 <- ret[!(ret$`Sourcebase Manufacturer Name` %in% z3$Company_Code_Name),]
+summary(z4)
+View(z4)
+z4 <- z4[!duplicated(z4),]
+z5 <- cbind(z4,z4)
+colnames(z5) <- c("COMPANY_CODE", "Company_Code_Name", "Parent","Parent Name" )
+colnames(z5)
+
+# z7 is the final table for company history + hpcs product + retired
+z6 <- rbind(z3,z5)
+z7 <- z6[!duplicated(z6$COMPANY_CODE),]
+nrow(z7)
+View(z7)
+write.xlsx(z7 , "z7.xlsx")
+
+
+```
+```{r}
+supp <- Vendor_Match_List
+colnames(supp)
+View(supp)
+supp$SUPPLIER_clean <- gsub('[[:punct:]]', "", supp$SUPPLIER)   ## removing punctuations
+supp$SUPPLIER_clean <- gsub('[[:cntrl:]]', "", supp$SUPPLIER_clean )   ## removing control words
+supp$SUPPLIER_clean <- tolower(supp$SUPPLIER_clean)
+#supp$SUPPLIER_clean <- gsub('[[:digit:]]+', '', supp$SUPPLIER_clean )
+supp$SUPPLIER_clean <- gsub("[[:space:]]", "", supp$SUPPLIER_clean )
+
+z7$Company_Code_Name_clean <- gsub('[[:punct:]]', "", z7$Company_Code_Name)   ## removing punctuations
+z7$Company_Code_Name_clean <- gsub('[[:cntrl:]]', "", z7$Company_Code_Name_clean )   ## removing control words
+z7$Company_Code_Name_clean <- tolower(z7$Company_Code_Name_clean)
+#supp$Company_Code_Name_clean <- gsub('[[:digit:]]+', '', supp$Company_Code_Name_clean )
+z7$Company_Code_Name_clean <- gsub("[[:space:]]", "", z7$Company_Code_Name_clean )
+
+
+## row numbering  ##
+z7$row <- rownames(z7)
+supp$row <- rownames(supp)
+
+###   Exact Match    ###
+
+ExactMatch_z7  <- z7 %>% mutate(z7, match = match(z7$Company_Code_Name_clean, supp$SUPPLIER_clean) )
+colnames(ExactMatch_z7)
+View(ExactMatch_z7)
+ExactMatch_z7 <- ExactMatch_z7 %>% merge(x = ExactMatch_z7  , y = supp, by.x = "match", by.y = "row", all.x = TRUE)
+summary(ExactMatch_z7)
+ExactMatch_z7$SUPPLIER_Exact <- ExactMatch_z7$SUPPLIER
+ExactMatch_z7$SUPPLIER <- NULL
+ExactMatch_z7$SUPPLIER_clean <- NULL
+ExactMatch_z7$Company_Code_Name_clean <- NULL
+ExactMatch_z7$VENDOR_MATCH_Exact <- ExactMatch_z7$VENDOR_MATCH
+ExactMatch_z7$VENDOR_MATCH <- NULL
+colnames(ExactMatch_z7)
+View(ExactMatch_z7)
+View(z7)
+##  Distance 5 Match ###
+match5_z7 <- z7 %>% mutate(z7, match = amatch(z7$Company_Code_Name_clean, supp$SUPPLIER_clean, maxDist = 5, matchNA = FALSE) )
+match5_z7 <- match5_z7 %>% merge(x = match5_z7  , y = supp, by.x = "match", by.y = "row", all.x = TRUE)
+match5_z7$SUPPLIER_5 <- match5_z7$SUPPLIER
+match5_z7$SUPPLIER <- NULL
+match5_z7$SUPPLIER_clean <- NULL
+match5_z7$Company_Code_Name_clean <- NULL
+match5_z7$VENDOR_MATCH_5 <- match5_z7$VENDOR_MATCH
+match5_z7$VENDOR_MATCH <- NULL
+
+View(match5_z7)
+colnames(match5_z7)
+
+##  Distance 10 Match ###
+match10_z7 <- z7 %>% mutate(z7, match = amatch(z7$Company_Code_Name_clean, supp$SUPPLIER_clean, maxDist = 10, matchNA = FALSE) )
+match10_z7 <- match10_z7 %>% merge(x = match10_z7  , y = supp, by.x = "match", by.y = "row", all.x = TRUE)
+colnames(match10_z7)
+match10_z7$SUPPLIER_10 <- match10_z7$SUPPLIER
+match10_z7$SUPPLIER <- NULL
+match10_z7$SUPPLIER_clean <- NULL
+match10_z7$Company_Code_Name_clean <- NULL
+match10_z7$VENDOR_MATCH_10 <- match10_z7$VENDOR_MATCH
+match10_z7$VENDOR_MATCH <- NULL
+summary(match10_z7)
+summary(match5_z7)
+summary(ExactMatch_z7)
+
+## All Merge
+all_merge_z7 <- merge(x = ExactMatch_z7[, c("row","SUPPLIER_Exact","VENDOR_MATCH_Exact" )] , y = match5_z7 , by.x = "row" , by.y = "row", all.x = TRUE )
+colnames(ExactMatch_z7)
+colnames(all_merge_z7)
+all_merge_z7 <- merge(x = all_merge_z7[, c("row","SUPPLIER_Exact","VENDOR_MATCH_Exact","SUPPLIER_5","VENDOR_MATCH_5" )] , y = match10_z7 , by.x = "row" , by.y = "row", all.x = TRUE )
+merge_z7 <- all_merge_z7[,c(7,8,9,10,2,3,4,5,12,13,11)]
+colnames(merge_z7)
+merge_z7Extra <- merge_z7[,c(9,10)]
+merge_z7[,c(9,10)] <- NULL
+View(merge_z7)
+#d <- duplicated(merge_z7$COMPANY_CODE)
+#summary(d)
+
+##  Distance 3 Match ###
+match3_z7 <- z7 %>% mutate(z7, match = amatch(z7$Company_Code_Name_clean, supp$SUPPLIER_clean, maxDist = 3, matchNA = FALSE) )
+match3_z7 <- match3_z7 %>% merge(x = match3_z7  , y = supp, by.x = "match", by.y = "row", all.x = TRUE)
+match3_z7$SUPPLIER_3 <- match3_z7$SUPPLIER
+match3_z7$SUPPLIER <- NULL
+match3_z7$SUPPLIER_clean <- NULL
+match3_z7$Company_Code_Name_clean <- NULL
+match3_z7$VENDOR_MATCH_3 <- match3_z7$VENDOR_MATCH
+match3_z7$VENDOR_MATCH <- NULL
+colnames(match3_z7)
+View(match3_z7)
+
+merge_z7New <- merge(x = merge_z7, y = match3_z7 , by.x = "COMPANY_CODE" , by.y = "COMPANY_CODE", all.x = TRUE )
+colnames(merge_z7New)
+merge_z7New <- merge_z7New[,c(1:9,16,17)]
+merge_z7New <- merge_z7New[,c(1:6,10,11,7,8,9)]
+View(merge_z7New)
+merge_z7New$Rank.x <- NULL
+colnames(match5_z7)
+merge_z7New <- merge(x = merge_z7New, y = match5_z7[,c(2,7)] , by.x = "COMPANY_CODE" , by.y = "COMPANY_CODE", all.x = TRUE )
+colnames(merge_z7New)
+
+##     Rank 1 Vs Rank 2 and 3  ##  
+xRedo <- supp
+xRedo$SUPPLIER_clean <- NULL
+xRedo$row <- NULL
+colnames(merge_z7New)
+unique(xRedo$Rank)
+xRedo <- filter(xRedo, xRedo$Rank == 2 | xRedo$Rank == 3)
+
+RankExact_z7 <- merge(x= merge_z7New[,c("COMPANY_CODE", "Company_Code_Name.x","Parent.x","Parent Name.x", "SUPPLIER_Exact" , "VENDOR_MATCH_Exact" )], y = xRedo, by.x = "VENDOR_MATCH_Exact", by.y = "VENDOR_MATCH", all.x = TRUE )
+colnames(RankExact_z7)
+View(RankExact_z7)
+View(supp)
+
+Rank_s3_z7 <- merge(x= merge_z7New[,c("COMPANY_CODE", "Company_Code_Name.x","Parent.x","Parent Name.x", "SUPPLIER_3" , "VENDOR_MATCH_3" )], y = xRedo, by.x = "VENDOR_MATCH_3", by.y = "VENDOR_MATCH", all.x = TRUE )
+colnames(Rank_s3_z7)
+View(supp)
+
+Rank_s5_z7 <- merge(x= merge_z7New[,c("COMPANY_CODE", "Company_Code_Name.x","Parent.x","Parent Name.x", "SUPPLIER_5" , "VENDOR_MATCH_5" )], y = xRedo, by.x = "VENDOR_MATCH_5", by.y = "VENDOR_MATCH", all.x = TRUE )
+colnames(Rank_s5_z7)
+View(Rank_s5_z7)
+
+
+colnames(RankExact_z7) <- c("VENDOR_MATCH_Exact",  "COMPANY_CODE","Company_Code_Name.x" ,"Parent.x",           "Parent Name.x",  "SUPPLIER_Exact",  "SUPPLIER(Internal Vendor Names) ","Rank"     )
+colnames(Rank_s3_z7) <- c("VENDOR_MATCH_3",  "COMPANY_CODE","Company_Code_Name.x" ,"Parent.x", "Parent Name.x",  "SUPPLIER_3",  "SUPPLIER(Internal Vendor Names) ","Rank"     )
+colnames(Rank_s5_z7) <- c("VENDOR_MATCH_5",  "COMPANY_CODE","Company_Code_Name.x" ,"Parent.x",  "Parent Name.x",  "SUPPLIER_5",  "SUPPLIER(Internal Vendor Names) ","Rank"     )
+
+write.xlsx(merge_z7New, "ECRI_All_Match.xlsx")
+write.xlsx(RankExact_z7, "ECRI_Internal_Match_exact.xlsx")
+write.xlsx(Rank_s3_z7, "ECRI_Internal_Match_3.xlsx")
+write.xlsx(Rank_s5_z7, "ECRI_Internal_Match_5.xlsx")
+View(merge_z7New)
+
+colnames(merge_z7New)
+colnames(RankExact_z7)
+colnames(Rank_s3_z7)
+colnames(Rank_s5_z7)
+View(Rank_s5_z7)
+
+
+
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
